@@ -42,10 +42,17 @@ void addRain(gbhs::SimulationData& data) {}
 
 // ------------------------------------------------
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cout << "A mandatory file path to the geo dataset is missing."
+                  << std::endl;
+    }
+
+    // prepare simulation
+    const char* filepath = argv[1];
     gbhs::SimulationSettings settings;
     gbhs::SimulationData data(settings.width, settings.height);
-    readGDALData("../../../data/dgm1_goslar.tif",
+    readGDALData(filepath,
                  data.height_map.ptr(),
                  settings.offset_x,
                  settings.offset_y,
