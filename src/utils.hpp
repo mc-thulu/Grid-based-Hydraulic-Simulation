@@ -31,6 +31,7 @@ struct Array2D {
 
     size_t idx(const size_t& x, const size_t& y) const { return x + y * width; }
     size_t size() const { return width * height; }
+    T* ptr() { return data.get(); }
 };
 
 }  // namespace gbhs

@@ -2,13 +2,13 @@
 
 namespace gbhs {
 
-SimulationData::SimulationData(const Array2D<float>& height_map) {
-    cells = Array2D<Cell>(height_map.width, height_map.height);
+SimulationData::SimulationData(const size_t& width, const size_t& height) {
+    height_map = Array2D<float>(width, height);
+    cells = Array2D<Cell>(width, height);
 
     for (int iy = 0; iy < height_map.height; ++iy) {
         for (int ix = 0; ix < height_map.width; ++ix) {
             Cell c(ix, iy);
-            c.height = height_map.at(ix, iy);
 
             // find steepest neighbour
             size_t neighbour_idx = 0;
@@ -19,8 +19,9 @@ SimulationData::SimulationData(const Array2D<float>& height_map) {
                 for (int nx = std::max(0, ix - 1);
                      nx < std::min(ix + 2, (int)height_map.width);
                      ++nx) {
-                    float gradient = (height_map.at(nx, ny) - c.height) /
-                                     sqrtf(abs(ix - nx) + abs(iy - ny));
+                    float gradient =
+                        (height_map.at(nx, ny) - height_map.at(ix, iy)) /
+                        sqrtf(abs(ix - nx) + abs(iy - ny));
                     if (gradient < lowest_gradient) {
                         lowest_gradient = gradient;
                         neighbour_idx = height_map.idx(nx, ny);
@@ -48,7 +49,7 @@ float SimulationData::cellGradient(const size_t& cell_idx1,
                                    const size_t& cell_idx2) const {
     const Cell& c1 = cells.at(cell_idx1);
     const Cell& c2 = cells.at(cell_idx2);
-    return (c1.height - c2.height) /
+    return (height_map.at(cell_idx1) - height_map.at(cell_idx2)) /
            sqrtf((c1.x - c2.x) * (c1.x - c2.x) + (c1.y - c2.y) * (c1.y - c2.y));
 }
 

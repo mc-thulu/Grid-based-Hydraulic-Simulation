@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <string>
 
 #include "gdal_priv.h"
 #include "manning.hpp"
@@ -42,58 +43,76 @@ void addRain(gbhs::SimulationData& data) {}
 // ------------------------------------------------
 
 int main() {
-    int32_t offset_x = 10750;
-    int32_t offset_y = 13000;
-    int32_t width = 250;
-    int32_t height = 250;
-
-    // read height data from dataset
-    gbhs::Array2D<float> height_map(width, height);
-    readGDALData("data/dgm1_goslar.tif",
-                 height_map.data.get(),
-                 offset_x,
-                 offset_y,
-                 width,
-                 height);
-    gbhs::SimulationData data(height_map);
+    gbhs::SimulationSettings settings;
+    gbhs::SimulationData data(settings.width, settings.height);
+    readGDALData("../../../data/dgm1_goslar.tif",
+                 data.height_map.ptr(),
+                 settings.offset_x,
+                 settings.offset_y,
+                 settings.width,
+                 settings.height);
     gbhs::Manning sim(data);
+    std::vector<std::pair<size_t, float>> output_data;
 
-    float dt = 0.1f;                            // [sec]
-    size_t output_resolution = 100;             // [steps]
-    size_t output_counter = output_resolution;  // [steps]
-    for (size_t i = 0; i < 12000; ++i) {
+    // run simulation
+    size_t output_counter = settings.output_resolution;  // [steps]
+    for (size_t i = 0; i < 1200; ++i) {
         // TODO add rain
 
         // compute in- and outflow
         // compute groundwater storage
-        sim.step(dt);
+        sim.step(settings.dt);
 
         // sweep empty cells & output
         if (--output_counter == 0) {
-            output_counter = output_resolution;
-            // TODO sweep & ouput
+            output_counter = settings.output_resolution;
+
+            // test pattern
+            for (size_t iy = 0; iy < settings.height; ++iy) {
+                for (size_t ix = 0; ix < settings.width; ++ix) {
+                    if ((ix + iy) % 2 == 0) {
+                        data.setWaterLevel(data.height_map.idx(ix, iy), 10.f);
+                    }
+                }
+            }
+
+            // prepare water level data for output
             data.sweepCellsWithWater();
-            std::cout << "TODO: Output" << std::endl;
+            size_t output_size = data.cellsWithWater().size();
+            for (const size_t& idx : data.cellsWithWater()) {
+                output_data.push_back({idx, data.getCell(idx).water_level});
+            }
+
+            // save water levels to disk
+            std::string filename = "output_";  // TODO folder
+            filename.append(
+                std::to_string((int)(i / settings.output_resolution)));
+            filename.append(".bin");
+            std::ofstream ws(filename, std::ios::binary);
+            if (!ws.is_open()) {
+                // file could not be opened
+                std::cout << "error open file" << std::endl;
+            }
+            ws.write(reinterpret_cast<const char*>(&output_size),
+                     sizeof(size_t));
+            ws.write(reinterpret_cast<const char*>(&output_data[0]),
+                     sizeof(std::pair<size_t, float>) * output_size);
+            ws.close();
+            output_data.clear();
         }
     }
 
-    // TODO only for testing ...
     // print map
-    std::ofstream wf("metadata.bin", std::ios::binary);
-    if (!wf.is_open()) {
+    std::ofstream ws("metadata.bin", std::ios::binary);
+    if (!ws.is_open()) {
         // file could not be opened
-        // TODO
-        std::cout << "file open error" << std::endl;
+        std::cout << "error open file" << std::endl;
     }
-    wf.write(reinterpret_cast<const char*>(&height_map.width), sizeof(size_t));
-    wf.write(reinterpret_cast<const char*>(&height_map.height), sizeof(size_t));
-    wf.write(reinterpret_cast<const char*>(&offset_x), sizeof(int32_t));
-    wf.write(reinterpret_cast<const char*>(&offset_y), sizeof(int32_t));
-    wf.write(reinterpret_cast<const char*>(&dt), sizeof(float));
-    wf.write(reinterpret_cast<const char*>(&output_resolution), sizeof(size_t));
-    wf.write(reinterpret_cast<const char*>(height_map.data.get()),
-             sizeof(float) * height_map.size());
-    wf.close();
+    ws.write(reinterpret_cast<const char*>(&settings),
+             sizeof(gbhs::SimulationSettings));
+    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
+             sizeof(float) * data.height_map.size());
+    ws.close();
 
     return 0;
 }
