@@ -1,5 +1,7 @@
 #include "simulation_data.hpp"
 
+#include <cmath>
+
 namespace gbhs {
 
 SimulationData::SimulationData(const size_t& width, const size_t& height) {

@@ -1,5 +1,7 @@
 #include "manning.hpp"
 
+#include <cmath>
+
 namespace gbhs {
 
 void Manning::step(const float& dt) {
