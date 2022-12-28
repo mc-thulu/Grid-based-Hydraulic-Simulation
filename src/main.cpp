@@ -92,14 +92,15 @@ int main(int argc, char* argv[]) {
             }
 
             // save water levels to disk
-            std::string filename = "output_";  // TODO folder
+            std::string filename = "output/step_";
             filename.append(
                 std::to_string((int)(i / settings.output_resolution)));
             filename.append(".bin");
             std::ofstream ws(filename, std::ios::binary);
             if (!ws.is_open()) {
-                // file could not be opened
-                std::cout << "error open file" << std::endl;
+                std::cout << "Error opening the file '" << filename << "'!"
+                          << std::endl;
+                return 1;
             }
             ws.write(reinterpret_cast<const char*>(&output_size),
                      sizeof(size_t));
@@ -111,10 +112,12 @@ int main(int argc, char* argv[]) {
     }
 
     // print map
-    std::ofstream ws("metadata.bin", std::ios::binary);
+    const char* filename = "output/metadata.bin";
+    std::ofstream ws(filename, std::ios::binary);
     if (!ws.is_open()) {
-        // file could not be opened
-        std::cout << "error open file" << std::endl;
+        std::cout << "Error opening the file '" << filename << "'!"
+                  << std::endl;
+        return 1;
     }
     ws.write(reinterpret_cast<const char*>(&settings),
              sizeof(gbhs::SimulationSettings));
