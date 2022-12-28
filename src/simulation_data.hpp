@@ -30,6 +30,7 @@ struct Cell {
 class SimulationData {
    public:
     SimulationData(const size_t& width, const size_t& height);
+    void findNeighbours();
     void setWaterLevel(const size_t& cell_idx, const float& amount);
     void modifyWaterLevel(const size_t& cell_idx, const float& amount);
     void sweepCellsWithWater();
@@ -43,7 +44,7 @@ class SimulationData {
     const std::vector<size_t>& cellsWithWater() const {
         return cells_with_water;
     }
-    Array2D<float> height_map; // TODO visibility
+    Array2D<float> height_map;  // TODO visibility
 
    private:
     Array2D<Cell> cells;

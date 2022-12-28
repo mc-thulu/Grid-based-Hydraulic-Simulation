@@ -7,7 +7,9 @@ namespace gbhs {
 SimulationData::SimulationData(const size_t& width, const size_t& height) {
     height_map = Array2D<float>(width, height);
     cells = Array2D<Cell>(width, height);
+}
 
+void SimulationData::findNeighbours() {
     for (int iy = 0; iy < height_map.height; ++iy) {
         for (int ix = 0; ix < height_map.width; ++ix) {
             Cell c(ix, iy);
@@ -21,6 +23,10 @@ SimulationData::SimulationData(const size_t& width, const size_t& height) {
                 for (int nx = std::max(0, ix - 1);
                      nx < std::min(ix + 2, (int)height_map.width);
                      ++nx) {
+                    if (iy == ny && ix == nx) {
+                        continue;
+                    }
+
                     float gradient =
                         (height_map.at(nx, ny) - height_map.at(ix, iy)) /
                         sqrtf(abs(ix - nx) + abs(iy - ny));

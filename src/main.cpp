@@ -38,7 +38,15 @@ void readGDALData(const char* file,
 
 // ------------------------------------------------
 
-void addRain(gbhs::SimulationData& data) {}
+std::default_random_engine generator;
+void addRain(gbhs::SimulationData& data, const float& dt) {
+    int ncells = 0.08 * data.height_map.width * data.height_map.height;
+    std::uniform_int_distribution<int> dist_idx(0, data.height_map.size() - 1);
+    for (int i = 0; i < ncells; ++i) {
+        int idx = dist_idx(generator);
+        data.modifyWaterLevel(idx, 10.0f * dt);
+    }
+}
 
 // ------------------------------------------------
 
@@ -59,14 +67,14 @@ int main(int argc, char* argv[]) {
                  settings.offset_y,
                  settings.width,
                  settings.height);
+    data.findNeighbours();
     gbhs::Manning sim(data);
     std::vector<std::pair<size_t, float>> output_data;
 
     // run simulation
     size_t output_counter = settings.output_resolution;  // [steps]
+    addRain(data, settings.dt);
     for (size_t i = 0; i < 1200; ++i) {
-        // TODO add rain
-
         // compute in- and outflow
         // compute groundwater storage
         sim.step(settings.dt);
@@ -74,15 +82,6 @@ int main(int argc, char* argv[]) {
         // sweep empty cells & output
         if (--output_counter == 0) {
             output_counter = settings.output_resolution;
-
-            // test pattern
-            for (size_t iy = 0; iy < settings.height; ++iy) {
-                for (size_t ix = 0; ix < settings.width; ++ix) {
-                    if ((ix + iy) % 2 == 0) {
-                        data.setWaterLevel(data.height_map.idx(ix, iy), 10.f);
-                    }
-                }
-            }
 
             // prepare water level data for output
             data.sweepCellsWithWater();
@@ -108,6 +107,7 @@ int main(int argc, char* argv[]) {
                      sizeof(std::pair<size_t, float>) * output_size);
             ws.close();
             output_data.clear();
+            addRain(data, settings.dt);
         }
     }
 
