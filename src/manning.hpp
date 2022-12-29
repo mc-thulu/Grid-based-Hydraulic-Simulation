@@ -14,8 +14,6 @@ class Manning {
 
    private:
     SimulationData& data;
-    std::vector<std::pair<size_t, float>> l_inflow;
-    std::vector<std::pair<size_t, float>> l_outflow;
 };
 
 }  // namespace gbhs

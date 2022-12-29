@@ -20,6 +20,7 @@ struct Cell {
     size_t x = 0;
     size_t y = 0;
     float water_level = 0.0f;
+    float water_level_change = 0.0f;
     std::vector<size_t> neighbours = {};
     bool active = false;
 
@@ -36,6 +37,7 @@ class SimulationData {
     void sweepCellsWithWater();
     size_t cellCount() const { return cells.size(); }
     const Cell& getCell(const size_t& idx) const { return cells.at(idx); }
+    Cell& getCell(const size_t& idx) { return cells.at(idx); }  // TODO const
     float cellGradient(const size_t& cell_idx1, const size_t& cell_idx2) const;
     float cellDistance(const size_t& cell_idx1, const size_t& cell_idx2) const;
     const Cell& getCell(const size_t& x, const size_t& y) const {

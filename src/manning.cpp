@@ -10,10 +10,8 @@ void Manning::step(const float& dt) {
     float r = 0.035f;
 
     // in- and outflow
-    l_inflow.clear();
-    l_outflow.clear();
     for (const size_t& cell_idx : data.cellsWithWater()) {
-        const Cell& c = data.getCell(cell_idx);
+        Cell& c = data.getCell(cell_idx);
 
         const auto& neighbours = c.neighbours;
         if (neighbours.size() == 1) {  // TODO only one neighbour for now
@@ -26,26 +24,18 @@ void Manning::step(const float& dt) {
             if (outflow > h) {
                 outflow = h;
             }
-            l_outflow.push_back({cell_idx, -outflow});
-            l_inflow.push_back({neighbours[0], outflow});
+            c.water_level_change -= outflow;
+            data.getCell(neighbours[0]).water_level_change += outflow;
         }
-    }
-
-    // apply inflow
-    for (const auto& f : l_inflow) {
-        data.modifyWaterLevel(f.first, f.second);
-    }
-
-    // apply outflow
-    for (const auto& f : l_outflow) {
-        data.modifyWaterLevel(f.first, f.second);
     }
 
     // ground water & removing negative water levels
     for (const size_t& cell_idx : data.cellsWithWater()) {
-        const Cell& c = data.getCell(cell_idx);
-        data.setWaterLevel(cell_idx,
-                           std::max(0.f, c.water_level - 0.001f * dt));
+        Cell& c = data.getCell(cell_idx);
+        data.setWaterLevel(
+            cell_idx,
+            std::max(0.f, c.water_level + c.water_level_change - 0.001f * dt));
+        c.water_level_change = 0.0f;
     }
 
     // TODO "fill_depressions"
