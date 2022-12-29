@@ -10,8 +10,8 @@ void Manning::step(const float& dt) {
     float r = 0.035f;
 
     // in- and outflow
-    std::vector<std::pair<size_t, float>> l_inflow;   // TODO reuse memory
-    std::vector<std::pair<size_t, float>> l_outflow;  // TODO reuse memory
+    l_inflow.clear();
+    l_outflow.clear();
     for (const size_t& cell_idx : data.cellsWithWater()) {
         const Cell& c = data.getCell(cell_idx);
 
