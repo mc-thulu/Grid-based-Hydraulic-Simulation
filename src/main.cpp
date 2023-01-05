@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -7,6 +8,10 @@
 #include "manning.hpp"
 #include "simulation_data.hpp"
 #include "utils.hpp"
+
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using CHRONO_UNIT = std::chrono::milliseconds;
 
 void readGDALData(const char* file,
                   void* buffer,
@@ -71,6 +76,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::pair<size_t, float>> output_data;
 
     // run simulation
+    auto t_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
     addRain(data, settings.dt);
     for (size_t i = 0; i < 1200; ++i) {
@@ -108,6 +114,11 @@ int main(int argc, char* argv[]) {
             // addRain(data, settings.dt);
         }
     }
+
+    // runtime measurements
+    auto t_end = high_resolution_clock::now();
+    auto t_diff = duration_cast<CHRONO_UNIT>(t_end - t_start);
+    std::cout << "Elapsed time: " << t_diff.count() << std::endl;
 
     // print map
     const char* filename = "output/metadata.bin";
