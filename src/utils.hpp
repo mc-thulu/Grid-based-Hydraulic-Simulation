@@ -14,8 +14,7 @@ struct Array2D {
 
     Array2D() = default;
     Array2D(const Array2D& t) = delete;  // no copy constructor for now
-    Array2D(const size_t& width, const size_t& height)
-        : width(width), height(height) {
+    Array2D(const size_t& width, const size_t& height) : width(width), height(height) {
         data = std::shared_ptr<T[]>(new T[width * height]);
     }
 

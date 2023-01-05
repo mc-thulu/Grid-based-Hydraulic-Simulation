@@ -9,7 +9,7 @@ BinPackParameters: false
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
 BreakStringLiterals: true
-# ColumnLimit: 80
+ColumnLimit: 90
 FixNamespaceComments: true
 IndentWidth: 4
 Language: Cpp

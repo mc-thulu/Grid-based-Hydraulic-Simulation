@@ -40,7 +40,7 @@ void readGDALData(const char* file,
 
 std::default_random_engine generator;
 void addRain(gbhs::SimulationData& data, const float& dt) {
-    int ncells = 0.08 * data.height_map.width * data.height_map.height;
+    int ncells = 0.4 * data.height_map.width * data.height_map.height;
     std::uniform_int_distribution<int> dist_idx(0, data.height_map.size() - 1);
     for (int i = 0; i < ncells; ++i) {
         int idx = dist_idx(generator);
@@ -52,8 +52,7 @@ void addRain(gbhs::SimulationData& data, const float& dt) {
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        std::cout << "A mandatory file path to the geo dataset is missing."
-                  << std::endl;
+        std::cout << "A mandatory file path to the geo dataset is missing." << std::endl;
         return 1;
     }
 
@@ -79,6 +78,8 @@ int main(int argc, char* argv[]) {
         // compute groundwater storage
         sim.step(settings.dt);
 
+        if (i < 300) addRain(data, settings.dt);
+
         // sweep empty cells & output
         if (--output_counter == 0) {
             output_counter = settings.output_resolution;
@@ -92,22 +93,19 @@ int main(int argc, char* argv[]) {
 
             // save water levels to disk
             std::string filename = "output/step_";
-            filename.append(
-                std::to_string((int)(i / settings.output_resolution)));
+            filename.append(std::to_string((int)(i / settings.output_resolution)));
             filename.append(".bin");
             std::ofstream ws(filename, std::ios::binary);
             if (!ws.is_open()) {
-                std::cout << "Error opening the file '" << filename << "'!"
-                          << std::endl;
+                std::cout << "Error opening the file '" << filename << "'!" << std::endl;
                 return 1;
             }
-            ws.write(reinterpret_cast<const char*>(&output_size),
-                     sizeof(size_t));
+            ws.write(reinterpret_cast<const char*>(&output_size), sizeof(size_t));
             ws.write(reinterpret_cast<const char*>(&output_data[0]),
                      sizeof(std::pair<size_t, float>) * output_size);
             ws.close();
             output_data.clear();
-            addRain(data, settings.dt);
+            // addRain(data, settings.dt);
         }
     }
 
@@ -115,12 +113,10 @@ int main(int argc, char* argv[]) {
     const char* filename = "output/metadata.bin";
     std::ofstream ws(filename, std::ios::binary);
     if (!ws.is_open()) {
-        std::cout << "Error opening the file '" << filename << "'!"
-                  << std::endl;
+        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
         return 1;
     }
-    ws.write(reinterpret_cast<const char*>(&settings),
-             sizeof(gbhs::SimulationSettings));
+    ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
     ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
              sizeof(float) * data.height_map.size());
     ws.close();

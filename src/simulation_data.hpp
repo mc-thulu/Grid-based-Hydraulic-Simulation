@@ -16,12 +16,14 @@ struct SimulationSettings {
     size_t output_resolution = 100;  // [steps]
 };
 
+// TODO only create these information when cell has water in it
 struct Cell {
     size_t x = 0;
     size_t y = 0;
     float water_level = 0.0f;
     float water_level_change = 0.0f;
     std::vector<size_t> neighbours = {};
+    std::vector<size_t> higher_neigbours = {};  // sorted
     bool active = false;
 
     Cell() = default;
@@ -40,12 +42,8 @@ class SimulationData {
     Cell& getCell(const size_t& idx) { return cells.at(idx); }  // TODO const
     float cellGradient(const size_t& cell_idx1, const size_t& cell_idx2) const;
     float cellDistance(const size_t& cell_idx1, const size_t& cell_idx2) const;
-    const Cell& getCell(const size_t& x, const size_t& y) const {
-        return cells.at(x, y);
-    }
-    const std::vector<size_t>& cellsWithWater() const {
-        return cells_with_water;
-    }
+    const Cell& getCell(const size_t& x, const size_t& y) const { return cells.at(x, y); }
+    std::vector<size_t>& cellsWithWater() { return cells_with_water; }
     Array2D<float> height_map;  // TODO visibility
 
    private:

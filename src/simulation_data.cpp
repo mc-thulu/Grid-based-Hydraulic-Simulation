@@ -1,5 +1,6 @@
 #include "simulation_data.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace gbhs {
@@ -27,9 +28,13 @@ void SimulationData::findNeighbours() {
                         continue;
                     }
 
-                    float gradient =
-                        (height_map.at(nx, ny) - height_map.at(ix, iy)) /
-                        sqrtf(abs(ix - nx) + abs(iy - ny));
+                    float gradient = (height_map.at(nx, ny) - height_map.at(ix, iy)) /
+                                     sqrtf((ix - nx) * (ix - nx) + (iy - ny) * (iy - ny));
+
+                    if (gradient >= 0.f) {
+                        c.higher_neigbours.push_back(height_map.idx(nx, ny));
+                    }
+
                     if (gradient < lowest_gradient) {
                         lowest_gradient = gradient;
                         neighbour_idx = height_map.idx(nx, ny);
@@ -41,6 +46,11 @@ void SimulationData::findNeighbours() {
             if (lowest_gradient < 0.0f) {
                 c.neighbours.push_back(neighbour_idx);
             }
+            std::sort(c.higher_neigbours.begin(),
+                      c.higher_neigbours.end(),
+                      [&](const size_t& idx_1, const size_t& idx_2) {
+                          return height_map.at(idx_1) < height_map.at(idx_2);
+                      });
             cells.at(ix, iy) = c;
         }
     }
@@ -70,8 +80,7 @@ void SimulationData::sweepCellsWithWater() {
     }
 }
 
-void SimulationData::setWaterLevel(const size_t& cell_idx,
-                                   const float& amount) {
+void SimulationData::setWaterLevel(const size_t& cell_idx, const float& amount) {
     Cell& c = cells.at(cell_idx);
     c.water_level = amount;
     if (!c.active) {
@@ -80,8 +89,7 @@ void SimulationData::setWaterLevel(const size_t& cell_idx,
     }
 }
 
-void SimulationData::modifyWaterLevel(const size_t& cell_idx,
-                                      const float& amount) {
+void SimulationData::modifyWaterLevel(const size_t& cell_idx, const float& amount) {
     Cell& c = cells.at(cell_idx);
     c.water_level += amount;
     if (!c.active) {
