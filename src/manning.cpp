@@ -41,16 +41,16 @@ void Manning::step(const float& dt) {
     std::sort(data.cellsWithWater().begin(),
               data.cellsWithWater().end(),
               [&](const size_t& idx_1, const size_t& idx_2) {
-                  return data.height_map.at(idx_1) < data.height_map.at(idx_2);
+                  return data.height_map[idx_1] < data.height_map[idx_2];
               });
 
     for (const size_t& cell_idx : data.cellsWithWater()) {
         const Cell& c = data.getCell(cell_idx);
-        float cell_height = data.height_map.at(cell_idx);
+        float cell_height = data.height_map[cell_idx];
 
         for (size_t i = 0; i < c.higher_neigbours.size(); ++i) {
             const Cell& neighbor = data.getCell(c.higher_neigbours[i]);
-            float neighbor_height = data.height_map.at(c.higher_neigbours[i]);
+            float neighbor_height = data.height_map[c.higher_neigbours[i]];
             if (cell_height + c.water_level <= neighbor_height) {
                 break;
             }
@@ -61,8 +61,7 @@ void Manning::step(const float& dt) {
 
             // select the next highest neighbor
             if (i + 1 < c.higher_neigbours.size()) {
-                float next_neighbor_height =
-                    data.height_map.at(c.higher_neigbours[i + 1]);
+                float next_neighbor_height = data.height_map[c.higher_neigbours[i + 1]];
                 level_balance =
                     std::min(level_balance, next_neighbor_height - neighbor_height);
             }

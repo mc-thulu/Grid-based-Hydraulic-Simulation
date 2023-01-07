@@ -20,7 +20,8 @@ height_data = struct.unpack("f" * width * height, raw_data)
 
 # visualize height data
 arr = np.repeat(np.array(height_data), 3)  # 3 channels for RGB
-arr2d = np.reshape(arr, (width, height, 3))  # TODO shape order
+arr[arr < 0.] = 0.0
+arr2d = np.reshape(arr, (height, width, 3))
 arr2d = ((arr2d - arr2d.min()) * (1/(arr2d.max() - arr2d.min()) * 255)
          ).astype('uint8')  # scale to 0-255
 

@@ -38,15 +38,15 @@ class SimulationData {
     void modifyWaterLevel(const size_t& cell_idx, const float& amount);
     void sweepCellsWithWater();
     size_t cellCount() const { return cells.size(); }
-    const Cell& getCell(const size_t& idx) const { return cells.at(idx); }
-    Cell& getCell(const size_t& idx) { return cells.at(idx); }  // TODO const
+    const Cell& getCell(const size_t& idx) const { return cells[idx]; }
+    Cell& getCell(const size_t& idx) { return cells[idx]; }  // TODO const
     float cellGradient(const size_t& cell_idx1, const size_t& cell_idx2) const;
     float cellDistance(const size_t& cell_idx1, const size_t& cell_idx2) const;
-    const Cell& getCell(const size_t& x, const size_t& y) const { return cells.at(x, y); }
     std::vector<size_t>& cellsWithWater() { return cells_with_water; }
     Array2D<float> height_map;  // TODO visibility
 
    private:
+    Vec2ui dimensions;
     Array2D<Cell> cells;
     std::vector<size_t> cells_with_water;  // store idx of cell in cells array
 };
