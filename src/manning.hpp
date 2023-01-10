@@ -14,6 +14,7 @@ class Manning {
 
    private:
     SimulationData& data;
+    void fillDepressions();
 };
 
 }  // namespace gbhs
