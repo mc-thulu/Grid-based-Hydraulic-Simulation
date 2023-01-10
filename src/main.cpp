@@ -45,7 +45,7 @@ void readGDALData(const char* file,
 
 std::default_random_engine generator;
 void addRain(gbhs::SimulationData& data, const float& dt) {
-    int ncells = 0.4 * data.height_map.width * data.height_map.height;
+    int ncells = 0.08 * data.height_map.width * data.height_map.height;
     std::uniform_int_distribution<int> dist_idx(0, data.height_map.size() - 1);
     for (int i = 0; i < ncells; ++i) {
         int idx = dist_idx(generator);
@@ -77,6 +77,7 @@ int main(int argc, char* argv[]) {
 
     // run simulation
     auto t_start = high_resolution_clock::now();
+    auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
     addRain(data, settings.dt);
     for (size_t i = 0; i < 1200; ++i) {
@@ -85,6 +86,14 @@ int main(int argc, char* argv[]) {
         sim.step(settings.dt);
 
         if (i < 300) addRain(data, settings.dt);
+
+        // debug info
+        auto t_step =
+            duration_cast<CHRONO_UNIT>(high_resolution_clock::now() - t_step_start);
+        t_step_start = high_resolution_clock::now();
+        float fps = 1000.f / t_step.count();
+        std::cout << "step: " << fps << "fps; " << data.cellsWithWater().size()
+                  << std::endl;
 
         // sweep empty cells & output
         if (--output_counter == 0) {
