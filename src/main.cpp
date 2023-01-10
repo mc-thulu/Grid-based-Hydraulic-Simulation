@@ -45,10 +45,14 @@ void readGDALData(const char* file,
 
 std::default_random_engine generator;
 void addRain(gbhs::SimulationData& data, const float& dt) {
-    int ncells = 0.08 * data.height_map.width * data.height_map.height;
+    int ncells = 0.001 * data.height_map.width * data.height_map.height;
     std::uniform_int_distribution<int> dist_idx(0, data.height_map.size() - 1);
     for (int i = 0; i < ncells; ++i) {
         int idx = dist_idx(generator);
+        if (data.height_map[idx] < 0.f) {
+            continue;
+        }
+
         data.modifyWaterLevel(idx, 10.0f * dt);
     }
 }
@@ -80,7 +84,7 @@ int main(int argc, char* argv[]) {
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
     addRain(data, settings.dt);
-    for (size_t i = 0; i < 1200; ++i) {
+    for (size_t i = 0; i < 110; ++i) {
         // compute in- and outflow
         // compute groundwater storage
         sim.step(settings.dt);
