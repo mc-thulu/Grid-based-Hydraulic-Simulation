@@ -39,7 +39,7 @@ void SimulationData::findNeighbours() {
                         continue;
                     }
 
-                    float gradient = (height_map[neighbor_idx] - height_map[cell_idx]) /
+                    float gradient = cellGradient(neighbor_idx, cell_idx) /
                                      sqrtf((ix - nx) * (ix - nx) + (iy - ny) * (iy - ny));
 
                     // if (gradient >= 0.f) {

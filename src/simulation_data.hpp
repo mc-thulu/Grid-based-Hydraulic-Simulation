@@ -30,9 +30,11 @@ struct Cell {
     Cell(const size_t& x, const size_t& y) : x(x), y(y) {}
 };
 
+// TODO rework & visibility
 class SimulationData {
    public:
     SimulationData(const size_t& width, const size_t& height);
+
     void findNeighbours();
     void setWaterLevel(const size_t& cell_idx, const float& amount);
     void modifyWaterLevel(const size_t& cell_idx, const float& amount);
@@ -43,10 +45,11 @@ class SimulationData {
     float cellGradient(const size_t& cell_idx1, const size_t& cell_idx2) const;
     float cellDistance(const size_t& cell_idx1, const size_t& cell_idx2) const;
     std::vector<size_t>& cellsWithWater() { return cells_with_water; }
+
     Array2D<float> height_map;  // TODO visibility
+    Vec2ui dimensions;
 
    private:
-    Vec2ui dimensions;
     Array2D<Cell> cells;
     std::vector<size_t> cells_with_water;  // store idx of cell in cells array
 };

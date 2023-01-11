@@ -24,12 +24,13 @@ arr[arr < 0.] = 0.0
 arr2d = np.reshape(arr, (height, width, 3))
 arr2d = ((arr2d - arr2d.min()) * (1/(arr2d.max() - arr2d.min()) * 255)
          ).astype('uint8')  # scale to 0-255
+imgplot = plt.imshow(arr2d)
+plt.show()
 
 filepath = "build/output/step_"
-new_arr_copy = np.copy(arr2d)
-for i in range(0, 12):
+for i in range(0, 10):
     # reset
-    arr2d = np.copy(new_arr_copy)
+    arr2d = np.zeros((height, width))
 
     # read water level data
     ifilepath = filepath + str(i) + ".bin"
@@ -42,13 +43,19 @@ for i in range(0, 12):
 
     # visualize water level data
     blue = np.array([0, 0, 255])
+    white = np.array([255, 255, 255])
     for i in range(0, length):
         x = water_data[i*3] % width
         y = int(water_data[i*3] / height)
         h = water_data[i*3+1]
-        opacity = h / 60  # TODO water level scale
-        new_color = (opacity * blue + (1-opacity)
-                     * arr2d[y][x]).astype(np.int64)
-        arr2d[y][x] = new_color
+        # opacity = h / 1000  # TODO water level scale
+        # new_color = (opacity * blue + (1-opacity)
+        #              * arr2d[y][x]).astype(np.int64)
+        # new_color = white * opacity
+        arr2d[y][x] = h
+
+    print(arr2d.max())
+    arr2d = ((arr2d - arr2d.min()) * (1/(arr2d.max() - arr2d.min()) * 255)
+            ).astype('uint8')  # scale to 0-255
     imgplot = plt.imshow(arr2d)
     plt.show()

@@ -56,7 +56,7 @@ void Manning::step(const float& dt) {
         const auto& neighbours = c.neighbours;
         if (neighbours.size() == 1) {  // TODO only one neighbour for now
             // calc flow
-            float s = abs(data.cellGradient(cell_idx, neighbours[0]));
+            float s = abs(data.cellGradient(neighbours[0], cell_idx));
             float h = c.water_level;
             float l = data.cellDistance(cell_idx, neighbours[0]);
             float outflow = (dt / (l * w)) * w * h * (1.f / r) *
@@ -64,16 +64,20 @@ void Manning::step(const float& dt) {
             if (outflow > h) {
                 outflow = h;
             }
-            c.water_level_change -= outflow;
-            data.getCell(neighbours[0]).water_level_change += outflow;
+            c.water_level -= outflow;
+            Cell& neighbor = data.getCell(neighbours[0]);
+            neighbor.water_level_change += outflow;
+            if (!neighbor.active) {
+                neighbor.active = true;
+                data.cellsWithWater().push_back(neighbours[0]);  // TODO danger
+            }
         }
     }
 
     // apply in-/outflow & removing negative water levels
     for (const size_t& cell_idx : data.cellsWithWater()) {
         Cell& c = data.getCell(cell_idx);
-        data.setWaterLevel(
-            cell_idx, std::max(0.f, c.water_level + c.water_level_change - 0.001f * dt));
+        c.water_level = std::max(0.f, c.water_level + c.water_level_change - 0.001f * dt);
         c.water_level_change = 0.0f;
     }
 
