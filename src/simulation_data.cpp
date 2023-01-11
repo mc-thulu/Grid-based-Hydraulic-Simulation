@@ -42,9 +42,9 @@ void SimulationData::findNeighbours() {
                     float gradient = (height_map[neighbor_idx] - height_map[cell_idx]) /
                                      sqrtf((ix - nx) * (ix - nx) + (iy - ny) * (iy - ny));
 
-                    if (gradient >= 0.f) {
-                        cells[cell_idx].higher_neigbours.push_back(neighbor_idx);
-                    }
+                    // if (gradient >= 0.f) {
+                    //     cells[cell_idx].higher_neigbours.push_back(neighbor_idx);
+                    // }
 
                     if (gradient < lowest_gradient) {
                         lowest_gradient = gradient;
@@ -57,11 +57,11 @@ void SimulationData::findNeighbours() {
             if (lowest_gradient < 0.0f) {
                 cells[cell_idx].neighbours.push_back(lowest_neighbour_idx);
             }
-            std::sort(cells[cell_idx].higher_neigbours.begin(),
-                      cells[cell_idx].higher_neigbours.end(),
-                      [&](const size_t& idx_1, const size_t& idx_2) {
-                          return height_map[idx_1] < height_map[idx_2];
-                      });
+            // std::sort(cells[cell_idx].higher_neigbours.begin(),
+            //           cells[cell_idx].higher_neigbours.end(),
+            //           [&](const size_t& idx_1, const size_t& idx_2) {
+            //               return height_map[idx_1] < height_map[idx_2];
+            //           });
         }
     }
 }

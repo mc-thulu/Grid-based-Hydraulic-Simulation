@@ -23,7 +23,7 @@ struct Cell {
     float water_level = 0.0f;
     float water_level_change = 0.0f;
     std::vector<size_t> neighbours = {};
-    std::vector<size_t> higher_neigbours = {};  // sorted
+    // std::vector<size_t> higher_neigbours = {};  // sorted
     bool active = false;
 
     Cell() = default;

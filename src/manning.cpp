@@ -5,7 +5,7 @@
 
 namespace gbhs {
 
-void Manning::fillDepressions() {
+/* void Manning::fillDepressions() {
     // "fill_depressions"
     std::sort(data.cellsWithWater().begin(),
               data.cellsWithWater().end(),
@@ -42,7 +42,7 @@ void Manning::fillDepressions() {
             }
         }
     }
-}
+} */
 
 void Manning::step(const float& dt) {
     // TODO constants for now
@@ -77,7 +77,7 @@ void Manning::step(const float& dt) {
         c.water_level_change = 0.0f;
     }
 
-    fillDepressions();
+    // fillDepressions();
 }
 
 }  // namespace gbhs
