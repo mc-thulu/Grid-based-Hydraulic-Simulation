@@ -82,10 +82,16 @@ float SimulationData::cellGradient(const size_t& cell_idx1,
 }
 
 void SimulationData::sweepCellsWithWater() {
-    for (int i = -1 + cells_with_water.size(); i >= 0; --i) {
-        if (cells[cells_with_water[i]].water_level <= 0.f) {
-            cells[cells_with_water[i]].active = false;
-            cells_with_water.erase(cells_with_water.begin() + i);
+    cells_with_water.clear();
+    for (int y = 0; y < dimensions.y; ++y) {
+        for (int x = 0; x < dimensions.x; ++x) {
+            size_t idx = x + y * dimensions.x;
+            if (height_map[idx] < 0.f) {
+                continue;
+            }
+            if (cells[idx].water_level > 0.f) {
+                cells_with_water.push_back(idx);
+            }
         }
     }
 }

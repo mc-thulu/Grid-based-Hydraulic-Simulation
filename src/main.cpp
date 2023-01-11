@@ -95,17 +95,19 @@ int main(int argc, char* argv[]) {
         auto t_step =
             duration_cast<CHRONO_UNIT>(high_resolution_clock::now() - t_step_start);
         t_step_start = high_resolution_clock::now();
-        float fps = 1000.f / t_step.count();
-        std::cout << "step: " << fps << "fps; " << data.cellsWithWater().size()
-                  << std::endl;
+        float fps = 1000.f / t_step.count();  // TODO avoid constant
+        std::cout << "step " << i << ": " << fps << "fps; "
+                  << data.cellsWithWater().size() << " cells with water" << std::endl;
 
         // sweep empty cells & output
         if (--output_counter == 0) {
             output_counter = settings.output_resolution;
+            std::cout << "------" << std::endl;
 
             // prepare water level data for output
             data.sweepCellsWithWater();
             size_t output_size = data.cellsWithWater().size();
+            output_data.reserve(output_size);
             for (const size_t& idx : data.cellsWithWater()) {
                 output_data.push_back({idx, data.getCell(idx).water_level});
             }
