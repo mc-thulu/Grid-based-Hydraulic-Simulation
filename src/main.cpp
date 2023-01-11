@@ -6,6 +6,7 @@
 
 #include "gdal_priv.h"
 #include "manning.hpp"
+#include "perlin_noise.hpp"
 #include "simulation_data.hpp"
 #include "utils.hpp"
 
@@ -43,17 +44,33 @@ void readGDALData(const char* file,
 
 // ------------------------------------------------
 
-std::default_random_engine generator;
-void addRain(gbhs::SimulationData& data, const float& dt) {
-    int ncells = 0.001 * data.height_map.width * data.height_map.height;
-    std::uniform_int_distribution<int> dist_idx(0, data.height_map.size() - 1);
-    for (int i = 0; i < ncells; ++i) {
-        int idx = dist_idx(generator);
-        if (data.height_map[idx] < 0.f) {
-            continue;
-        }
+void addRain(gbhs::SimulationData& data, const std::vector<size_t>& rain_cells) {
+    for (const size_t& i : rain_cells) {
+        data.modifyWaterLevel(i, 0.0005f);
+    }
+}
 
-        data.modifyWaterLevel(idx, 10.0f * dt);
+// ------------------------------------------------
+
+void decideRainCells(std::vector<size_t>& rain_cells,
+                     gbhs::SimulationData& data,
+                     gbhs::Vec2ui offset) {
+    // decide rain cells
+    rain_cells.clear();
+    const siv::PerlinNoise::seed_type seed = 123456u;
+    const siv::PerlinNoise perlin{seed};
+    for (int y = 0; y < data.dimensions.y; ++y) {
+        for (int x = 0; x < data.dimensions.x; ++x) {
+            float noise = perlin.noise2D_01((double)(x + offset.x) / 4000,
+                                            (double)(y + offset.y) / 4000);
+            if (noise > 0.7f) {
+                size_t idx = x + y * data.dimensions.x;
+                if (data.height_map[idx] < 0.f) {
+                    continue;
+                }
+                rain_cells.push_back(idx);
+            }
+        }
     }
 }
 
@@ -79,17 +96,31 @@ int main(int argc, char* argv[]) {
     gbhs::Manning sim(data);
     std::vector<std::pair<size_t, float>> output_data;
 
+    // print map
+    const char* filename = "output/metadata.bin";
+    std::ofstream ws(filename, std::ios::binary);
+    if (!ws.is_open()) {
+        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
+        return 1;
+    }
+    ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
+    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
+             sizeof(float) * data.height_map.size());
+    ws.close();
+
+    std::vector<size_t> rain_cells;
+    decideRainCells(rain_cells, data, {0, 0});
+
     // run simulation
     auto t_start = high_resolution_clock::now();
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
-    addRain(data, settings.dt);
+    addRain(data, rain_cells);
     for (size_t i = 0; i < 1500; ++i) {
         // compute in- and outflow
         // compute groundwater storage
         sim.step(settings.dt);
-
-        if (i < 300) addRain(data, settings.dt);
+        addRain(data, rain_cells);
 
         // debug info
         auto t_step =
@@ -114,7 +145,8 @@ int main(int argc, char* argv[]) {
 
             // save water levels to disk
             std::string filename = "output/step_";
-            filename.append(std::to_string((int)(i / settings.output_resolution)));
+            uint32_t step_count = (int)(i / settings.output_resolution);
+            filename.append(std::to_string(step_count));
             filename.append(".bin");
             std::ofstream ws(filename, std::ios::binary);
             if (!ws.is_open()) {
@@ -126,7 +158,7 @@ int main(int argc, char* argv[]) {
                      sizeof(std::pair<size_t, float>) * output_size);
             ws.close();
             output_data.clear();
-            // addRain(data, settings.dt);
+            decideRainCells(rain_cells, data, {step_count * 250, step_count * 250});
         }
     }
 
@@ -134,18 +166,6 @@ int main(int argc, char* argv[]) {
     auto t_end = high_resolution_clock::now();
     auto t_diff = duration_cast<CHRONO_UNIT>(t_end - t_start);
     std::cout << "Elapsed time: " << t_diff.count() << std::endl;
-
-    // print map
-    const char* filename = "output/metadata.bin";
-    std::ofstream ws(filename, std::ios::binary);
-    if (!ws.is_open()) {
-        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
-        return 1;
-    }
-    ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
-    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
-             sizeof(float) * data.height_map.size());
-    ws.close();
 
     return 0;
 }
