@@ -8,12 +8,12 @@
 namespace gbhs {
 
 struct SimulationSettings {
-    int32_t offset_x = 10750;
-    int32_t offset_y = 13000;
-    int32_t width = 250;
-    int32_t height = 250;
+    int32_t offset_x = 0;
+    int32_t offset_y = 0;
+    int32_t width = 23558;
+    int32_t height = 20000;
     float dt = 0.1f;                 // [sec]
-    size_t output_resolution = 100;  // [steps]
+    size_t output_resolution = 150;  // [steps]
 };
 
 // TODO only create these information when cell has water in it

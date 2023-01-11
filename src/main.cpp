@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
     addRain(data, settings.dt);
-    for (size_t i = 0; i < 110; ++i) {
+    for (size_t i = 0; i < 1500; ++i) {
         // compute in- and outflow
         // compute groundwater storage
         sim.step(settings.dt);
