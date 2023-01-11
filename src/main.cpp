@@ -76,6 +76,38 @@ void decideRainCells(std::vector<size_t>& rain_cells,
 
 // ------------------------------------------------
 
+void writeMetadata(const gbhs::SimulationSettings& settings, gbhs::SimulationData& data) {
+    // print map
+    const char* filename = "output/metadata.bin";
+    std::ofstream ws(filename, std::ios::binary);
+    if (!ws.is_open()) {
+        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
+        exit(1);
+    }
+    ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
+    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
+             sizeof(float) * data.height_map.size());
+    ws.close();
+}
+
+// ------------------------------------------------
+
+void writeStepData(const std::string& filename,
+                   const size_t& size,
+                   const std::vector<std::pair<size_t, float>>& data) {
+    std::ofstream ws(filename, std::ios::binary);
+    if (!ws.is_open()) {
+        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
+        std::exit(1);
+    }
+    ws.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+    ws.write(reinterpret_cast<const char*>(&data[0]),
+             sizeof(std::pair<size_t, float>) * size);
+    ws.close();
+}
+
+// ------------------------------------------------
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cout << "A mandatory file path to the geo dataset is missing." << std::endl;
@@ -95,30 +127,18 @@ int main(int argc, char* argv[]) {
     data.findNeighbours();
     gbhs::Manning sim(data);
     std::vector<std::pair<size_t, float>> output_data;
+    writeMetadata(settings, data);
 
-    // print map
-    const char* filename = "output/metadata.bin";
-    std::ofstream ws(filename, std::ios::binary);
-    if (!ws.is_open()) {
-        std::cout << "Error opening the file '" << filename << "'!" << std::endl;
-        return 1;
-    }
-    ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
-    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
-             sizeof(float) * data.height_map.size());
-    ws.close();
-
+    // add initial rain
     std::vector<size_t> rain_cells;
     decideRainCells(rain_cells, data, {0, 0});
+    addRain(data, rain_cells);
 
     // run simulation
     auto t_start = high_resolution_clock::now();
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
-    addRain(data, rain_cells);
     for (size_t i = 0; i < 1500; ++i) {
-        // compute in- and outflow
-        // compute groundwater storage
         sim.step(settings.dt);
         addRain(data, rain_cells);
 
@@ -148,16 +168,10 @@ int main(int argc, char* argv[]) {
             uint32_t step_count = (int)(i / settings.output_resolution);
             filename.append(std::to_string(step_count));
             filename.append(".bin");
-            std::ofstream ws(filename, std::ios::binary);
-            if (!ws.is_open()) {
-                std::cout << "Error opening the file '" << filename << "'!" << std::endl;
-                return 1;
-            }
-            ws.write(reinterpret_cast<const char*>(&output_size), sizeof(size_t));
-            ws.write(reinterpret_cast<const char*>(&output_data[0]),
-                     sizeof(std::pair<size_t, float>) * output_size);
-            ws.close();
+            writeStepData(filename, output_size, output_data);
             output_data.clear();
+
+            // change rain
             decideRainCells(rain_cells, data, {step_count * 250, step_count * 250});
         }
     }
