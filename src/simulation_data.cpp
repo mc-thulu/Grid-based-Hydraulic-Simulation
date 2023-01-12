@@ -55,7 +55,7 @@ void SimulationData::findNeighbours() {
 
             // was a neighbour found?
             if (lowest_gradient < 0.0f) {
-                cells[cell_idx].neighbours.push_back(lowest_neighbour_idx);
+                cells[cell_idx].neighbor = lowest_neighbour_idx;
             }
             // std::sort(cells[cell_idx].higher_neigbours.begin(),
             //           cells[cell_idx].higher_neigbours.end(),

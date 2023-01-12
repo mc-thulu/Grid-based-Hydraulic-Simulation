@@ -18,11 +18,12 @@ struct SimulationSettings {
 
 // TODO only create these information when cell has water in it
 struct Cell {
-    size_t x = 0;
-    size_t y = 0;
+    uint32_t x = 0;
+    uint32_t y = 0;
     float water_level = 0.0f;
     float water_level_change = 0.0f;
-    std::vector<size_t> neighbours = {};
+    int32_t neighbor = -1;
+    // std::vector<size_t> neighbours = {};
     // std::vector<size_t> higher_neigbours = {};  // sorted
     bool active = false;
 

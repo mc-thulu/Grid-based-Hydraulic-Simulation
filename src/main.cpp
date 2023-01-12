@@ -14,6 +14,8 @@ using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using CHRONO_UNIT = std::chrono::milliseconds;
 
+constexpr size_t simulation_steps = 1500;
+
 void readGDALData(const char* file,
                   void* buffer,
                   const int32_t& offset_x,
@@ -44,15 +46,16 @@ void readGDALData(const char* file,
 
 // ------------------------------------------------
 
-void addRain(gbhs::SimulationData& data, const std::vector<size_t>& rain_cells) {
-    for (const size_t& i : rain_cells) {
-        data.modifyWaterLevel(i, 0.0005f);
+void addRain(gbhs::SimulationData& data,
+             const std::vector<std::pair<uint32_t, double>>& rain_cells) {
+    for (const auto& i : rain_cells) {
+        data.modifyWaterLevel(i.first, 0.0005f * i.second);
     }
 }
 
 // ------------------------------------------------
 
-void decideRainCells(std::vector<size_t>& rain_cells,
+void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
                      gbhs::SimulationData& data,
                      gbhs::Vec2ui offset) {
     // decide rain cells
@@ -68,7 +71,7 @@ void decideRainCells(std::vector<size_t>& rain_cells,
                 if (data.height_map[idx] < 0.f) {
                     continue;
                 }
-                rain_cells.push_back(idx);
+                rain_cells.push_back({idx, (noise - 0.7) * 3.333});
             }
         }
     }
@@ -93,16 +96,16 @@ void writeMetadata(const gbhs::SimulationSettings& settings, gbhs::SimulationDat
 // ------------------------------------------------
 
 void writeStepData(const std::string& filename,
-                   const size_t& size,
-                   const std::vector<std::pair<size_t, float>>& data) {
+                   const uint32_t& size,
+                   const std::vector<std::pair<uint32_t, float>>& data) {
     std::ofstream ws(filename, std::ios::binary);
     if (!ws.is_open()) {
         std::cout << "Error opening the file '" << filename << "'!" << std::endl;
         std::exit(1);
     }
-    ws.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+    ws.write(reinterpret_cast<const char*>(&size), sizeof(uint32_t));
     ws.write(reinterpret_cast<const char*>(&data[0]),
-             sizeof(std::pair<size_t, float>) * size);
+             sizeof(std::pair<uint32_t, float>) * size);
     ws.close();
 }
 
@@ -126,11 +129,11 @@ int main(int argc, char* argv[]) {
                  settings.height);
     data.findNeighbours();
     gbhs::Manning sim(data);
-    std::vector<std::pair<size_t, float>> output_data;
+    std::vector<std::pair<uint32_t, float>> output_data;
     writeMetadata(settings, data);
 
     // add initial rain
-    std::vector<size_t> rain_cells;
+    std::vector<std::pair<uint32_t, double>> rain_cells;
     decideRainCells(rain_cells, data, {0, 0});
     addRain(data, rain_cells);
 
@@ -138,7 +141,7 @@ int main(int argc, char* argv[]) {
     auto t_start = high_resolution_clock::now();
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
-    for (size_t i = 0; i < 1500; ++i) {
+    for (size_t i = 0; i < simulation_steps; ++i) {
         sim.step(settings.dt);
         addRain(data, rain_cells);
 
@@ -159,7 +162,7 @@ int main(int argc, char* argv[]) {
             data.sweepCellsWithWater();
             size_t output_size = data.cellsWithWater().size();
             output_data.reserve(output_size);
-            for (const size_t& idx : data.cellsWithWater()) {
+            for (const uint32_t& idx : data.cellsWithWater()) {
                 output_data.push_back({idx, data.getCell(idx).water_level});
             }
 

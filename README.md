@@ -21,7 +21,7 @@ float_32|height value for each cell (width x height many)
 
 |Type|Description|
 |-|-|
-uint_64|number of following cells
-{uint_64 + float_32 + float_32}|for each cell: uint_64 index of that cell; float_32 for the water level; float_32 padding
+uint_32|number of following cells
+{uint_32 + float_32}|for each cell: uint_64 index of that cell; float_32 for the water level
 
 Exact layout and endian may vary on different platforms - WiP ...

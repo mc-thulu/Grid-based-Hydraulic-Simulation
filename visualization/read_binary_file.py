@@ -35,19 +35,19 @@ for i in range(0, 10):
     # read water level data
     ifilepath = filepath + str(i) + ".bin"
     f = open(ifilepath, "rb")
-    raw_data = f.read(struct.calcsize("<Q"))  # file layout
-    length = struct.unpack("<Q", raw_data)[0]
-    raw_data = f.read((struct.calcsize("<Qff")) * length)
-    water_data = struct.unpack("Qff" * length, raw_data)
+    raw_data = f.read(struct.calcsize("<I"))  # file layout
+    length = struct.unpack("<I", raw_data)[0]
+    raw_data = f.read((struct.calcsize("<II")) * length)
+    water_data = struct.unpack("II" * length, raw_data)
     f.close()
 
     # visualize water level data
     blue = np.array([0, 0, 255])
     white = np.array([255, 255, 255])
     for i in range(0, length):
-        x = water_data[i*3] % width
-        y = int(water_data[i*3] / height)
-        h = water_data[i*3+1]
+        x = water_data[i*2] % width
+        y = int(water_data[i*2] / height)
+        h = water_data[i*2+1]
         # opacity = h / 1000  # TODO water level scale
         # new_color = (opacity * blue + (1-opacity)
         #              * arr2d[y][x]).astype(np.int64)
