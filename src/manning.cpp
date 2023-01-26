@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <cmath>
 
+#include "definitions.hpp"
+
+using namespace gbhs::constants;
+
 namespace gbhs {
 
 void Manning::calc(Cell& c, const float dt) {
@@ -31,8 +35,8 @@ void Manning::step(const float& dt) {
 }
 
 void Manning::simulateBlocks(const float& dt) {
-    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
-        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+    for (int by = 0; by < BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
             Block& b = data.blocks[by][bx];
             if (!b.containsWater()) {
                 continue;
@@ -51,8 +55,8 @@ void Manning::simulateBlocks(const float& dt) {
 
 void Manning::simulateBorders(const float& dt) {
     // interactions between blocks
-    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
-        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+    for (int by = 0; by < BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
             Block& b = data.blocks[by][bx];
             if (!b.containsWater()) {
                 continue;
@@ -76,8 +80,8 @@ void Manning::simulateBorders(const float& dt) {
 void Manning::applyChanges(const float& dt) {
     // apply in-/outflow & removing negative water levels
     // TODO less work
-    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
-        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+    for (int by = 0; by < BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
             Block& b = data.blocks[by][bx];
             if (!b.containsWater()) {
                 continue;

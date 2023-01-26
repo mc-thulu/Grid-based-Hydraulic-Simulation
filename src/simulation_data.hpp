@@ -3,19 +3,12 @@
 
 #include <bitset>
 
+#include "definitions.hpp"
 #include "utils.hpp"
 
-namespace gbhs {
+using namespace gbhs::constants;
 
-// TODO rework
-constexpr int32_t WORLDSIZE_X = 23558;  // TODO dynamic
-constexpr int32_t WORLDSIZE_Y = 20000;  // TODO dynamic
-constexpr int BLOCKSIZE_X = 200;
-constexpr int BLOCKSIZE_Y = 200;
-constexpr int BLOCKSIZE = BLOCKSIZE_X * BLOCKSIZE_Y;
-constexpr int BLOCKCNT_X = (WORLDSIZE_X / BLOCKSIZE_X) + 1;
-constexpr int BLOCKCNT_Y = (WORLDSIZE_Y / BLOCKSIZE_Y) + 1;
-constexpr int BLOCKCNT = BLOCKCNT_X * BLOCKCNT_Y;
+namespace gbhs {
 
 // TODO reduce size?
 struct Cell {
@@ -35,12 +28,12 @@ struct Block {
 };
 
 struct SimulationSettings {
-    int32_t offset_x = 0;
-    int32_t offset_y = 0;
+    int32_t offset_x = DATA_OFFSET_X;
+    int32_t offset_y = DATA_OFFSET_Y;
     int32_t width = WORLDSIZE_X;  // TODO rework
     int32_t height = WORLDSIZE_Y;
-    float dt = 0.1f;                 // [sec]
-    size_t output_resolution = 150;  // [steps]
+    float dt = DT;                                 // [sec]
+    size_t output_resolution = OUTPUT_RESOLUTION;  // [steps]
 };
 
 // TODO rework & visibility

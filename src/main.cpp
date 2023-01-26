@@ -4,6 +4,7 @@
 #include <random>
 #include <string>
 
+#include "definitions.hpp"
 #include "gdal_priv.h"
 #include "manning.hpp"
 #include "perlin_noise.hpp"
@@ -13,8 +14,7 @@
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using CHRONO_UNIT = std::chrono::milliseconds;
-
-constexpr size_t simulation_steps = 1000;
+using namespace gbhs::constants;
 
 void readGDALData(const char* file,
                   gbhs::SimulationData& simulation_data,
@@ -100,24 +100,24 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
                      gbhs::Vec2ui offset) {
     // decide rain cells
     rain_cells.clear();
-    const siv::PerlinNoise::seed_type seed = 123456u;
+    const siv::PerlinNoise::seed_type seed = PERLIN_NOISE_SEED;
     const siv::PerlinNoise perlin{seed};
     for (int y = 0; y < data.dimensions.y; ++y) {
         for (int x = 0; x < data.dimensions.x; ++x) {
-            float noise = perlin.noise2D_01((double)(x + offset.x) / 4000,
-                                            (double)(y + offset.y) / 4000);
+            float noise = perlin.noise2D_01((double)(x + offset.x) / PERLIN_NOISE_SCALE,
+                                            (double)(y + offset.y) / PERLIN_NOISE_SCALE);
             if (noise > 0.7f) {
-                int block_x = x / gbhs::BLOCKSIZE_X;
-                int block_y = y / gbhs::BLOCKSIZE_Y;
-                int cell_x = x - block_x * gbhs::BLOCKSIZE_X;
-                int cell_y = y - block_y * gbhs::BLOCKSIZE_Y;
+                int block_x = x / BLOCKSIZE_X;
+                int block_y = y / BLOCKSIZE_Y;
+                int cell_x = x - block_x * BLOCKSIZE_X;
+                int cell_y = y - block_y * BLOCKSIZE_Y;
                 gbhs::Block& b = data.blocks[block_y][block_x];
                 gbhs::Cell& c = b.data[cell_y][cell_x];
                 if (c.height < 0.f) {
                     continue;
                 }
                 c.rain = (noise - 0.7) * 3.333;
-                b.cells_with_water.set(cell_x + cell_y * gbhs::BLOCKSIZE_X, true);
+                b.cells_with_water.set(cell_x + cell_y * BLOCKSIZE_X, true);
             }
         }
     }
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
     auto t_start = high_resolution_clock::now();
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
-    for (size_t i = 0; i < simulation_steps; ++i) {
+    for (size_t i = 0; i < SIMULATION_STEPS; ++i) {
         sim.step(settings.dt);
 
         // debug info
@@ -206,21 +206,20 @@ int main(int argc, char* argv[]) {
 
             // TODO rework
             size_t output_size = 0;
-            for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
-                for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+            for (int by = 0; by < BLOCKCNT_Y; ++by) {
+                for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
                     gbhs::Block& b = data.blocks[by][bx];
                     if (!b.containsWater()) {
                         continue;
                     }
 
-                    for (int iy = 0; iy < gbhs::BLOCKSIZE_Y; ++iy) {
-                        for (int ix = 0; ix < gbhs::BLOCKSIZE_X; ++ix) {
+                    for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
+                        for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
                             gbhs::Cell& c = b.data[iy][ix];
                             if (c.water_level > 0.f) {
                                 ++output_size;
-                                size_t idx =
-                                    ix + gbhs::BLOCKSIZE_X * bx +
-                                    (iy + gbhs::BLOCKSIZE_Y * by) * settings.width;
+                                size_t idx = ix + BLOCKSIZE_X * bx +
+                                             (iy + BLOCKSIZE_Y * by) * settings.width;
                                 output_data.push_back({idx, c.water_level});
                             }
                         }
