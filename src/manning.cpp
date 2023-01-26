@@ -5,82 +5,101 @@
 
 namespace gbhs {
 
-/* void Manning::fillDepressions() {
-    // "fill_depressions"
-    std::sort(data.cellsWithWater().begin(),
-              data.cellsWithWater().end(),
-              [&](const size_t& idx_1, const size_t& idx_2) {
-                  return data.height_map[idx_1] < data.height_map[idx_2];
-              });
-
-    for (const size_t& cell_idx : data.cellsWithWater()) {
-        const Cell& c = data.getCell(cell_idx);
-        float cell_height = data.height_map[cell_idx];
-
-        for (size_t i = 0; i < c.higher_neigbours.size(); ++i) {
-            const Cell& neighbor = data.getCell(c.higher_neigbours[i]);
-            float neighbor_height = data.height_map[c.higher_neigbours[i]];
-            if (cell_height + c.water_level <= neighbor_height) {
-                break;
-            }
-
-            // fill neighbor
-            float level_balance =
-                (cell_height + c.water_level - neighbor_height) / (2 + i);
-
-            // select the next highest neighbor
-            if (i + 1 < c.higher_neigbours.size()) {
-                float next_neighbor_height = data.height_map[c.higher_neigbours[i + 1]];
-                level_balance =
-                    std::min(level_balance, next_neighbor_height - neighbor_height);
-            }
-
-            data.modifyWaterLevel(cell_idx, -level_balance * (1 + i));
-
-            for (size_t m = 0; m < i + 1; ++m) {
-                data.modifyWaterLevel(c.higher_neigbours[m], level_balance);
-            }
-        }
-    }
-} */
-
-void Manning::step(const float& dt) {
-    // TODO constants for now
+void Manning::calc(Cell& c, const float dt) {
     float w = 0.5f;
     float r = 0.035f;
+    if (c.neighbor != nullptr && c.water_level > 0.f) {
+        // calc flow
+        float s = c.gradient;
+        float h = c.water_level;
+        float l = c.distance;
+        float outflow = (dt / (l * w)) * w * h * (1.f / r) *
+                        powf((w * h) / (w + 2.f * h), 2.f / 3.f) * sqrtf(s);
+        if (outflow > h) {
+            outflow = h;
+        }
+        c.water_level -= outflow;
+        c.neighbor->water_level_change += outflow;
+    }
+}
 
+void Manning::step(const float& dt) {
     // in- and outflow
-    for (const size_t& cell_idx : data.cellsWithWater()) {
-        Cell& c = data.getCell(cell_idx);
+    simulateBlocks(dt);
+    simulateBorders(dt);
+    applyChanges(dt);
+}
 
-        if (c.neighbor >= 0) {
-            // calc flow
-            float s = abs(data.cellGradient(c.neighbor, cell_idx));
-            float h = c.water_level;
-            float l = data.cellDistance(cell_idx, c.neighbor);
-            float outflow = (dt / (l * w)) * w * h * (1.f / r) *
-                            powf((w * h) / (w + 2.f * h), 2.f / 3.f) * sqrtf(s);
-            if (outflow > h) {
-                outflow = h;
+void Manning::simulateBlocks(const float& dt) {
+    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+            Block& b = data.blocks[by][bx];
+            if (!b.containsWater()) {
+                continue;
             }
-            c.water_level -= outflow;
-            Cell& neighbor = data.getCell(c.neighbor);
-            neighbor.water_level_change += outflow;
-            if (!neighbor.active) {
-                neighbor.active = true;
-                data.cellsWithWater().push_back(c.neighbor);  // TODO danger
+
+            // simulate cells (ignoring the borders)
+            for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
+                for (int ix = 1; ix < BLOCKSIZE_X - 1; ++ix) {
+                    Cell& c = b.data[iy][ix];
+                    calc(c, dt);
+                }
             }
         }
     }
+}
 
-    // apply in-/outflow & removing negative water levels
-    for (const size_t& cell_idx : data.cellsWithWater()) {
-        Cell& c = data.getCell(cell_idx);
-        c.water_level = std::max(0.f, c.water_level + c.water_level_change - 0.001f * dt);
-        c.water_level_change = 0.0f;
+void Manning::simulateBorders(const float& dt) {
+    // interactions between blocks
+    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+            Block& b = data.blocks[by][bx];
+            if (!b.containsWater()) {
+                continue;
+            }
+
+            // 1. top & bottom including corners
+            for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
+                calc(b.data[0][ix], dt);
+                calc(b.data[BLOCKSIZE_Y - 1][ix], dt);
+            }
+
+            // 2. left & right without corners
+            for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
+                calc(b.data[iy][0], dt);
+                calc(b.data[iy][BLOCKSIZE_X - 1], dt);
+            }
+        }
     }
+}
 
-    // fillDepressions();
+void Manning::applyChanges(const float& dt) {
+    // apply in-/outflow & removing negative water levels
+    // TODO less work
+    for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
+        for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+            Block& b = data.blocks[by][bx];
+            if (!b.containsWater()) {
+                continue;
+            }
+
+            for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
+                for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
+                    Cell& c = b.data[iy][ix];
+                    if (c.water_level <= 0.f && c.water_level_change <= 0.f) {
+                        continue;
+                    }
+
+                    c.water_level = std::max(
+                        0.f,
+                        c.water_level + c.water_level_change - 0.001f * dt + c.rain / 10);
+                    c.water_level_change = 0.0f;
+                    b.cells_with_water.set(ix + iy * BLOCKSIZE_X,
+                                           c.water_level > 0.0f || c.rain > 0.0f);
+                }
+            }
+        }
+    }
 }
 
 }  // namespace gbhs

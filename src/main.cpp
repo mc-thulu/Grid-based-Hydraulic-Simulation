@@ -14,10 +14,11 @@ using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using CHRONO_UNIT = std::chrono::milliseconds;
 
-constexpr size_t simulation_steps = 1500;
+constexpr size_t simulation_steps = 1000;
 
 void readGDALData(const char* file,
-                  void* buffer,
+                  gbhs::SimulationData& simulation_data,
+                  float* buffer,
                   const int32_t& offset_x,
                   const int32_t& offset_y,
                   const int32_t& width,
@@ -29,27 +30,66 @@ void readGDALData(const char* file,
     }
 
     GDALRasterBand* band =
-        dataset->GetRasterBand(1);  // assume that there is only one band
-    band->RasterIO(GF_Read,         // mode
-                   offset_x,        // offset x
-                   offset_y,        // offset y
-                   width,           // size x
-                   height,          // size y
-                   buffer,          // buffer
-                   width,           // buffer size x
-                   height,          // buffer size y
-                   GDT_Float32,     // format
-                   0,               // pixel space
-                   0u);             // line space
+        dataset->GetRasterBand(1);          // assume that there is only one band
+    auto res = band->RasterIO(GF_Read,      // mode
+                              offset_x,     // offset x
+                              offset_y,     // offset y
+                              width,        // size x
+                              height,       // size y
+                              buffer,       // buffer
+                              width,        // buffer size x
+                              height,       // buffer size y
+                              GDT_Float32,  // format
+                              0,            // pixel space
+                              0u);          // line space
+    if (res == CE_Failure) {
+        std::cerr << "GDAL file could not be read." << std::endl;
+        exit(1);
+    }
     GDALClose(dataset);
-}
 
-// ------------------------------------------------
+    for (int iy = 0; iy < height; ++iy) {
+        for (int ix = 0; ix < width; ++ix) {
+            size_t idx = ix + iy * width;
+            gbhs::Cell& c = simulation_data.getCell(ix, iy);
+            c.height = buffer[idx];
 
-void addRain(gbhs::SimulationData& data,
-             const std::vector<std::pair<uint32_t, double>>& rain_cells) {
-    for (const auto& i : rain_cells) {
-        data.modifyWaterLevel(i.first, 0.0005f * i.second);
+            // find neigbor
+            gbhs::Vec2i lowest_neighbour_idx = {0, 0};
+            float lowest_neighbour_distance = 0;
+            float lowest_gradient = 0;
+            for (int ny = std::max(0, iy - 1); ny < std::min(iy + 2, height); ++ny) {
+                for (int nx = std::max(0, ix - 1); nx < std::min(ix + 2, width); ++nx) {
+                    if (iy == ny && ix == nx) {
+                        continue;
+                    }
+
+                    size_t neighbor_idx = nx + ny * width;
+                    if (buffer[neighbor_idx] < 0.0f) {
+                        continue;
+                    }
+
+                    float distance = sqrtf((ix - nx) * (ix - nx) + (iy - ny) * (iy - ny));
+                    float height_dif = (buffer[neighbor_idx] - buffer[idx]);
+                    float gradient = height_dif / distance;
+
+                    if (gradient < lowest_gradient) {
+                        lowest_gradient = gradient;
+                        lowest_neighbour_idx = {nx, ny};
+                        lowest_neighbour_distance = distance;
+                    }
+                }
+            }
+
+            // was a neighbour found?
+            if (lowest_gradient < 0.0f) {
+                c.neighbor = &simulation_data.getCell(
+                    lowest_neighbour_idx.x,
+                    lowest_neighbour_idx.y);  // TODO pointer to ref???
+                c.distance = lowest_neighbour_distance;
+                c.gradient = std::abs(lowest_gradient);
+            }
+        }
     }
 }
 
@@ -67,11 +107,17 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
             float noise = perlin.noise2D_01((double)(x + offset.x) / 4000,
                                             (double)(y + offset.y) / 4000);
             if (noise > 0.7f) {
-                size_t idx = x + y * data.dimensions.x;
-                if (data.height_map[idx] < 0.f) {
+                int block_x = x / gbhs::BLOCKSIZE_X;
+                int block_y = y / gbhs::BLOCKSIZE_Y;
+                int cell_x = x - block_x * gbhs::BLOCKSIZE_X;
+                int cell_y = y - block_y * gbhs::BLOCKSIZE_Y;
+                gbhs::Block& b = data.blocks[block_y][block_x];
+                gbhs::Cell& c = b.data[cell_y][cell_x];
+                if (c.height < 0.f) {
                     continue;
                 }
-                rain_cells.push_back({idx, (noise - 0.7) * 3.333});
+                c.rain = (noise - 0.7) * 3.333;
+                b.cells_with_water.set(cell_x + cell_y * gbhs::BLOCKSIZE_X, true);
             }
         }
     }
@@ -79,7 +125,9 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
 
 // ------------------------------------------------
 
-void writeMetadata(const gbhs::SimulationSettings& settings, gbhs::SimulationData& data) {
+void writeMetadata(const gbhs::SimulationSettings& settings,
+                   float* data,
+                   const size_t& size) {
     // print map
     const char* filename = "output/metadata.bin";
     std::ofstream ws(filename, std::ios::binary);
@@ -88,8 +136,7 @@ void writeMetadata(const gbhs::SimulationSettings& settings, gbhs::SimulationDat
         exit(1);
     }
     ws.write(reinterpret_cast<const char*>(&settings), sizeof(gbhs::SimulationSettings));
-    ws.write(reinterpret_cast<const char*>(data.height_map.ptr()),
-             sizeof(float) * data.height_map.size());
+    ws.write(reinterpret_cast<const char*>(data), sizeof(float) * size);
     ws.close();
 }
 
@@ -121,21 +168,22 @@ int main(int argc, char* argv[]) {
     const char* filepath = argv[1];
     gbhs::SimulationSettings settings;
     gbhs::SimulationData data(settings.width, settings.height);
+    float* buffer = new float[settings.width * settings.height];
     readGDALData(filepath,
-                 data.height_map.ptr(),
+                 data,
+                 buffer,
                  settings.offset_x,
                  settings.offset_y,
                  settings.width,
                  settings.height);
-    data.findNeighbours();
     gbhs::Manning sim(data);
     std::vector<std::pair<uint32_t, float>> output_data;
-    writeMetadata(settings, data);
+    writeMetadata(settings, buffer, settings.height * settings.width);
+    delete[] buffer;
 
     // add initial rain
     std::vector<std::pair<uint32_t, double>> rain_cells;
     decideRainCells(rain_cells, data, {0, 0});
-    addRain(data, rain_cells);
 
     // run simulation
     auto t_start = high_resolution_clock::now();
@@ -143,27 +191,41 @@ int main(int argc, char* argv[]) {
     size_t output_counter = settings.output_resolution;  // [steps]
     for (size_t i = 0; i < simulation_steps; ++i) {
         sim.step(settings.dt);
-        addRain(data, rain_cells);
 
         // debug info
         auto t_step =
             duration_cast<CHRONO_UNIT>(high_resolution_clock::now() - t_step_start);
         t_step_start = high_resolution_clock::now();
         float fps = 1000.f / t_step.count();  // TODO avoid constant
-        std::cout << "step " << i << ": " << fps << "fps; "
-                  << data.cellsWithWater().size() << " cells with water" << std::endl;
+        std::cout << "step " << i << ": " << fps << "fps; " << std::endl;
 
         // sweep empty cells & output
         if (--output_counter == 0) {
             output_counter = settings.output_resolution;
             std::cout << "------" << std::endl;
 
-            // prepare water level data for output
-            data.sweepCellsWithWater();
-            size_t output_size = data.cellsWithWater().size();
-            output_data.reserve(output_size);
-            for (const uint32_t& idx : data.cellsWithWater()) {
-                output_data.push_back({idx, data.getCell(idx).water_level});
+            // TODO rework
+            size_t output_size = 0;
+            for (int by = 0; by < gbhs::BLOCKCNT_Y; ++by) {
+                for (int bx = 0; bx < gbhs::BLOCKCNT_X; ++bx) {
+                    gbhs::Block& b = data.blocks[by][bx];
+                    if (!b.containsWater()) {
+                        continue;
+                    }
+
+                    for (int iy = 0; iy < gbhs::BLOCKSIZE_Y; ++iy) {
+                        for (int ix = 0; ix < gbhs::BLOCKSIZE_X; ++ix) {
+                            gbhs::Cell& c = b.data[iy][ix];
+                            if (c.water_level > 0.f) {
+                                ++output_size;
+                                size_t idx =
+                                    ix + gbhs::BLOCKSIZE_X * bx +
+                                    (iy + gbhs::BLOCKSIZE_Y * by) * settings.width;
+                                output_data.push_back({idx, c.water_level});
+                            }
+                        }
+                    }
+                }
             }
 
             // save water levels to disk

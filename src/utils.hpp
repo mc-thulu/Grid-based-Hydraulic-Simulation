@@ -11,23 +11,24 @@ struct Vec2ui {
     size_t y = 0;
 };
 
-template <typename T>
+struct Vec2i {
+    int x = 0;
+    int y = 0;
+};
+
+// type, height, width
+template <typename T, const unsigned int N, const unsigned int M>
 struct Array2D {
-    std::shared_ptr<T[]> data;
-    size_t width = 0;
-    size_t height = 0;
+    // proxy class
+    struct Array1D {
+        T& operator[](const size_t& i) { return data[i]; }
+        const T& operator[](const size_t& i) const { return data[i]; }
+        std::shared_ptr<T[]> data = std::shared_ptr<T[]>(new T[M]);
+    };
 
-    Array2D() = default;
-    Array2D(const Array2D& t) = delete;  // no copy constructor for now
-    Array2D(const size_t& width, const size_t& height) : width(width), height(height) {
-        data = std::shared_ptr<T[]>(new T[width * height]);
-    }
-
-    T& operator[](const size_t& i) { return data[i]; }
-    const T& operator[](const size_t& i) const { return data[i]; }
-    size_t idx(const size_t& x, const size_t& y) const { return x + y * width; }
-    size_t size() const { return width * height; }
-    T* ptr() { return data.get(); }
+    Array1D& operator[](const size_t& i) { return data[i]; }
+    const Array1D& operator[](const size_t& i) const { return data[i]; }
+    std::shared_ptr<Array1D[]> data = std::shared_ptr<Array1D[]>(new Array1D[N]);
 };
 
 }  // namespace gbhs

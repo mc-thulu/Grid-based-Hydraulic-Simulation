@@ -14,7 +14,10 @@ class Manning {
 
    private:
     SimulationData& data;
-    // void fillDepressions();
+    void calc(Cell& c, const float dt);
+    void simulateBlocks(const float& dt);
+    void simulateBorders(const float& dt);
+    void applyChanges(const float& dt);
 };
 
 }  // namespace gbhs

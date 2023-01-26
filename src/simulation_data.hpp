@@ -1,58 +1,57 @@
 #ifndef EXDIMUM_SIMULATION_DATA_H
 #define EXDIMUM_SIMULATION_DATA_H
 
-#include <vector>
+#include <bitset>
 
 #include "utils.hpp"
 
 namespace gbhs {
 
+// TODO rework
+constexpr int32_t WORLDSIZE_X = 23558;  // TODO dynamic
+constexpr int32_t WORLDSIZE_Y = 20000;  // TODO dynamic
+constexpr int BLOCKSIZE_X = 200;
+constexpr int BLOCKSIZE_Y = 200;
+constexpr int BLOCKSIZE = BLOCKSIZE_X * BLOCKSIZE_Y;
+constexpr int BLOCKCNT_X = (WORLDSIZE_X / BLOCKSIZE_X) + 1;
+constexpr int BLOCKCNT_Y = (WORLDSIZE_Y / BLOCKSIZE_Y) + 1;
+constexpr int BLOCKCNT = BLOCKCNT_X * BLOCKCNT_Y;
+
+// TODO reduce size?
+struct Cell {
+    float height = -1.f;
+    float water_level = 0.f;
+    float water_level_change = 0.f;
+    Cell* neighbor = nullptr;
+    float distance = 0.f;
+    float gradient = 0.f;
+    float rain = 0.f;
+};
+
+struct Block {
+    Array2D<Cell, BLOCKSIZE_Y, BLOCKSIZE_X> data;
+    std::bitset<BLOCKSIZE> cells_with_water = 0b0;
+    bool containsWater() const { return cells_with_water.any(); }
+};
+
 struct SimulationSettings {
     int32_t offset_x = 0;
     int32_t offset_y = 0;
-    int32_t width = 23558;
-    int32_t height = 20000;
+    int32_t width = WORLDSIZE_X;  // TODO rework
+    int32_t height = WORLDSIZE_Y;
     float dt = 0.1f;                 // [sec]
     size_t output_resolution = 150;  // [steps]
-};
-
-// TODO only create these information when cell has water in it
-struct Cell {
-    uint32_t x = 0;
-    uint32_t y = 0;
-    float water_level = 0.0f;
-    float water_level_change = 0.0f;
-    int32_t neighbor = -1;
-    // std::vector<size_t> neighbours = {};
-    // std::vector<size_t> higher_neigbours = {};  // sorted
-    bool active = false;
-
-    Cell() = default;
-    Cell(const size_t& x, const size_t& y) : x(x), y(y) {}
 };
 
 // TODO rework & visibility
 class SimulationData {
    public:
     SimulationData(const size_t& width, const size_t& height);
+    Cell& getCell(const size_t& x, const size_t& y);
 
-    void findNeighbours();
-    void setWaterLevel(const size_t& cell_idx, const float& amount);
-    void modifyWaterLevel(const size_t& cell_idx, const float& amount);
-    void sweepCellsWithWater();
-    size_t cellCount() const { return cells.size(); }
-    const Cell& getCell(const size_t& idx) const { return cells[idx]; }
-    Cell& getCell(const size_t& idx) { return cells[idx]; }  // TODO const
-    float cellGradient(const size_t& cell_idx1, const size_t& cell_idx2) const;
-    float cellDistance(const size_t& cell_idx1, const size_t& cell_idx2) const;
-    std::vector<size_t>& cellsWithWater() { return cells_with_water; }
-
-    Array2D<float> height_map;  // TODO visibility
+    // TODO visibility
     Vec2ui dimensions;
-
-   private:
-    Array2D<Cell> cells;
-    std::vector<size_t> cells_with_water;  // store idx of cell in cells array
+    Array2D<Block, BLOCKCNT_Y, BLOCKCNT_X> blocks;
 };
 
 }  // namespace gbhs
