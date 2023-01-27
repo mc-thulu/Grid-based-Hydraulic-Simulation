@@ -29,25 +29,42 @@ void Manning::calc(Cell& c, const float dt) {
 
 void Manning::step(const float& dt) {
     // in- and outflow
-    simulateBlocks(dt);
+    threads.clear();
+    for (int i = 0; i < BLOCKCNT_Y; ++i) {
+        std::thread t(&Manning::simulateBlocks, this, dt, i);
+        threads.push_back(std::move(t));
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+    threads.clear();
     simulateBorders(dt);
-    applyChanges(dt);
+
+    // apply changes
+    for (int i = 0; i < BLOCKCNT_Y; ++i) {
+        std::thread t(&Manning::applyChanges, this, dt, i);
+        threads.push_back(std::move(t));
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
 }
 
-void Manning::simulateBlocks(const float& dt) {
-    for (int by = 0; by < BLOCKCNT_Y; ++by) {
-        for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-            Block& b = data.blocks[by][bx];
-            if (!b.containsWater()) {
-                continue;
-            }
+void Manning::simulateBlocks(const float& dt, int row) {
+    // for (int by = n; by < m; ++by) {
+    for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
+        Block& b = data.blocks[row][bx];
+        if (!b.containsWater()) {
+            continue;
+        }
 
-            // simulate cells (ignoring the borders)
-            for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
-                for (int ix = 1; ix < BLOCKSIZE_X - 1; ++ix) {
-                    Cell& c = b.data[iy][ix];
-                    calc(c, dt);
-                }
+        // simulate cells (ignoring the borders)
+        for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
+            for (int ix = 1; ix < BLOCKSIZE_X - 1; ++ix) {
+                Cell& c = b.data[iy][ix];
+                calc(c, dt);
             }
         }
     }
@@ -77,33 +94,35 @@ void Manning::simulateBorders(const float& dt) {
     }
 }
 
-void Manning::applyChanges(const float& dt) {
+void Manning::applyChanges(const float& dt, int row) {
     // apply in-/outflow & removing negative water levels
     // TODO less work
-    for (int by = 0; by < BLOCKCNT_Y; ++by) {
-        for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-            Block& b = data.blocks[by][bx];
-            if (!b.containsWater()) {
-                continue;
-            }
+    // for (int by = 0; by < BLOCKCNT_Y; ++by) {
+    int by = row;
+    for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
+        Block& b = data.blocks[by][bx];
+        if (!b.containsWater()) {
+            continue;
+        }
 
-            for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
-                for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
-                    Cell& c = b.data[iy][ix];
-                    if (c.water_level <= 0.f && c.water_level_change <= 0.f) {
-                        continue;
-                    }
-
-                    c.water_level = std::max(
-                        0.f,
-                        c.water_level + c.water_level_change - 0.001f * dt + c.rain / 10);
-                    c.water_level_change = 0.0f;
-                    b.cells_with_water.set(ix + iy * BLOCKSIZE_X,
-                                           c.water_level > 0.0f || c.rain > 0.0f);
+        for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
+            for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
+                Cell& c = b.data[iy][ix];
+                if (c.water_level <= 0.f && c.water_level_change <= 0.f &&
+                    c.rain <= 0.0f) {
+                    continue;
                 }
+
+                c.water_level = std::max(
+                    0.f,
+                    c.water_level + c.water_level_change - 0.001f * dt + c.rain / 10);
+                c.water_level_change = 0.0f;
+                b.cells_with_water.set(ix + iy * BLOCKSIZE_X,
+                                       c.water_level > 0.0f || c.rain > 0.0f);
             }
         }
     }
+    // }
 }
 
 }  // namespace gbhs
