@@ -112,10 +112,10 @@ void Manning::applyChanges(const float& dt, int row) {
                     c.rain <= 0.0f) {
                     continue;
                 }
-
+                // TODO: floating point precision!
                 c.water_level = std::max(
                     0.f,
-                    c.water_level + c.water_level_change - 0.001f * dt + c.rain / 10);
+                    c.water_level + c.water_level_change - static_cast<float>(GROUND_INFILTRATION) * dt + c.rain * dt);
                 c.water_level_change = 0.0f;
                 b.cells_with_water.set(ix + iy * BLOCKSIZE_X,
                                        c.water_level > 0.0f || c.rain > 0.0f);

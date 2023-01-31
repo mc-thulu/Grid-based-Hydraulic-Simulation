@@ -37,8 +37,8 @@ for i in range(0, 10):
     f = open(ifilepath, "rb")
     raw_data = f.read(struct.calcsize("<I"))  # file layout
     length = struct.unpack("<I", raw_data)[0]
-    raw_data = f.read((struct.calcsize("<II")) * length)
-    water_data = struct.unpack("II" * length, raw_data)
+    raw_data = f.read((struct.calcsize("<If")) * length)
+    water_data = struct.unpack("If" * length, raw_data)
     f.close()
 
     # visualize water level data
@@ -46,16 +46,12 @@ for i in range(0, 10):
     white = np.array([255, 255, 255])
     for i in range(0, length):
         x = water_data[i*2] % width
-        y = int(water_data[i*2] / height)
+        y = int(water_data[i*2] / width)
         h = water_data[i*2+1]
-        # opacity = h / 1000  # TODO water level scale
-        # new_color = (opacity * blue + (1-opacity)
-        #              * arr2d[y][x]).astype(np.int64)
-        # new_color = white * opacity
         arr2d[y][x] = h
 
     print(arr2d.max())
     arr2d = ((arr2d - arr2d.min()) * (1/(arr2d.max() - arr2d.min()) * 255)
-            ).astype('uint8')  # scale to 0-255
+             ).astype('uint8')  # scale to 0-255
     imgplot = plt.imshow(arr2d)
     plt.show()

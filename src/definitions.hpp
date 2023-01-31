@@ -25,6 +25,12 @@ constexpr size_t OUTPUT_RESOLUTION = 150;  // [steps]
 constexpr int PERLIN_NOISE_SCALE = 4000;
 constexpr unsigned int PERLIN_NOISE_SEED = 123456u;
 
+// rain settings
+constexpr double RAINFALL_VOLUME = 20;  // [liter per hour per m^2]
+constexpr double RAINFALL_HEIGHT =
+    RAINFALL_VOLUME * 2.777e-7;  // [meter per second per m^2]
+constexpr double GROUND_INFILTRATION = 2.777e-7;  // [meter per second per m^2]
+
 }  // namespace constants
 }  // namespace gbhs
 

@@ -116,7 +116,9 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
                 if (c.height < 0.f) {
                     continue;
                 }
-                c.rain = (noise - 0.7) * 3.333;
+                // TODO: rain depends on cell size; for now: assume cell = 1m^2
+                c.rain =
+                    (noise - 0.7) * 3.333 * RAINFALL_HEIGHT;  // [m per s per m^2]
                 b.cells_with_water.set(cell_x + cell_y * BLOCKSIZE_X, true);
             }
         }
@@ -218,8 +220,8 @@ int main(int argc, char* argv[]) {
                             gbhs::Cell& c = b.data[iy][ix];
                             if (c.water_level > 0.f) {
                                 ++output_size;
-                                size_t idx = ix + BLOCKSIZE_X * bx +
-                                             (iy + BLOCKSIZE_Y * by) * settings.width;
+                                uint32_t idx = ix + BLOCKSIZE_X * bx +
+                                               (iy + BLOCKSIZE_Y * by) * settings.width;
                                 output_data.push_back({idx, c.water_level});
                             }
                         }
