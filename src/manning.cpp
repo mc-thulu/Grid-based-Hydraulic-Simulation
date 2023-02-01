@@ -29,30 +29,20 @@ void Manning::calc(Cell& c, const float dt) {
 
 void Manning::step(const float& dt) {
     // in- and outflow
-    threads.clear();
     for (int i = 0; i < BLOCKCNT_Y; ++i) {
-        std::thread t(&Manning::simulateBlocks, this, dt, i);
-        threads.push_back(std::move(t));
+        tp.addTask([this, dt, i]() { simulateBlocks(dt, i); });
     }
-
-    for (auto& t : threads) {
-        t.join();
-    }
-    threads.clear();
+    tp.waitUntilDone();
     simulateBorders(dt);
 
     // apply changes
     for (int i = 0; i < BLOCKCNT_Y; ++i) {
-        std::thread t(&Manning::applyChanges, this, dt, i);
-        threads.push_back(std::move(t));
+        tp.addTask([this, dt, i]() { applyChanges(dt, i); });
     }
-
-    for (auto& t : threads) {
-        t.join();
-    }
+    tp.waitUntilDone();
 }
 
-void Manning::simulateBlocks(const float& dt, int row) {
+void Manning::simulateBlocks(float dt, int row) {
     // for (int by = n; by < m; ++by) {
     for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
         Block& b = data.blocks[row][bx];
@@ -70,7 +60,7 @@ void Manning::simulateBlocks(const float& dt, int row) {
     }
 }
 
-void Manning::simulateBorders(const float& dt) {
+void Manning::simulateBorders(float dt) {
     // interactions between blocks
     for (int by = 0; by < BLOCKCNT_Y; ++by) {
         for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
@@ -94,7 +84,7 @@ void Manning::simulateBorders(const float& dt) {
     }
 }
 
-void Manning::applyChanges(const float& dt, int row) {
+void Manning::applyChanges(float dt, int row) {
     // apply in-/outflow & removing negative water levels
     // TODO less work
     // for (int by = 0; by < BLOCKCNT_Y; ++by) {
@@ -115,7 +105,8 @@ void Manning::applyChanges(const float& dt, int row) {
                 // TODO: floating point precision!
                 c.water_level = std::max(
                     0.f,
-                    c.water_level + c.water_level_change - static_cast<float>(GROUND_INFILTRATION) * dt + c.rain * dt);
+                    c.water_level + c.water_level_change -
+                        static_cast<float>(GROUND_INFILTRATION) * dt + c.rain * dt);
                 c.water_level_change = 0.0f;
                 b.cells_with_water.set(ix + iy * BLOCKSIZE_X,
                                        c.water_level > 0.0f || c.rain > 0.0f);

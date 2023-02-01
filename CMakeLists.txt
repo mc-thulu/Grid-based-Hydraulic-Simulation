@@ -17,4 +17,5 @@ target_sources(gbhs
         src/manning.cpp
         src/simulation_data.cpp
         src/definitions.hpp
+        src/thread_pool.cpp
 )

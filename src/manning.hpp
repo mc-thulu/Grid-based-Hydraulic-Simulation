@@ -2,9 +2,9 @@
 #define EXDIMUM_MANNING_H
 
 #include <vector>
-#include <thread>
 
 #include "simulation_data.hpp"
+#include "thread_pool.hpp"
 
 namespace gbhs {
 
@@ -16,10 +16,10 @@ class Manning {
    private:
     SimulationData& data;
     void calc(Cell& c, const float dt);
-    void simulateBlocks(const float& dt, int row);
-    void simulateBorders(const float& dt);
-    void applyChanges(const float& dt, int row);
-    std::vector<std::thread> threads;
+    void simulateBlocks(float dt, int row);
+    void simulateBorders(float dt);
+    void applyChanges(float dt, int row);
+    ThreadPool tp;
 };
 
 }  // namespace gbhs
