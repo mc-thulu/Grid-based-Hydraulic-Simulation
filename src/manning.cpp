@@ -45,7 +45,7 @@ void Manning::step(const float& dt) {
 void Manning::simulateBlocks(float dt, int row) {
     // for (int by = n; by < m; ++by) {
     for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-        Block& b = data.blocks[row][bx];
+        Block& b = data.blocks.get(bx, row);
         if (!b.containsWater()) {
             continue;
         }
@@ -53,7 +53,7 @@ void Manning::simulateBlocks(float dt, int row) {
         // simulate cells (ignoring the borders)
         for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
             for (int ix = 1; ix < BLOCKSIZE_X - 1; ++ix) {
-                Cell& c = b.data[iy][ix];
+                Cell& c = b.data.get(ix, iy);
                 calc(c, dt);
             }
         }
@@ -64,22 +64,22 @@ void Manning::simulateBorders(float dt) {
     // interactions between blocks
     for (int by = 0; by < BLOCKCNT_Y; ++by) {
         for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-            Block& b = data.blocks[by][bx];
+            Block& b = data.blocks.get(bx, by);
             if (!b.containsWater()) {
                 continue;
             }
 
             // 1. top & bottom including corners
             for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
-                calc(b.data[0][ix], dt);
-                calc(b.data[BLOCKSIZE_Y - 1][ix], dt);
+                calc(b.data.get(ix, 0), dt);
+                calc(b.data.get(ix, BLOCKSIZE_Y - 1), dt);
             }
 
             // 2. left & right without corners
             for (int iy = 1; iy < BLOCKSIZE_Y - 1; ++iy) {
-                calc(b.data[iy][0], dt);
-                calc(b.data[iy][BLOCKSIZE_X - 1], dt);
-            }
+                calc(b.data.get(0, iy), dt);
+                calc(b.data.get(BLOCKSIZE_X - 1, iy), dt);
+            } 
         }
     }
 }
@@ -90,14 +90,14 @@ void Manning::applyChanges(float dt, int row) {
     // for (int by = 0; by < BLOCKCNT_Y; ++by) {
     int by = row;
     for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-        Block& b = data.blocks[by][bx];
+        Block& b = data.blocks.get(bx, by);
         if (!b.containsWater()) {
             continue;
         }
 
         for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
             for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
-                Cell& c = b.data[iy][ix];
+                Cell& c = b.data.get(ix, iy);
                 if (c.water_level <= 0.f && c.water_level_change <= 0.f &&
                     c.rain <= 0.0f) {
                     continue;

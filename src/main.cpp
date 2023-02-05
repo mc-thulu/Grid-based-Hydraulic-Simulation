@@ -111,8 +111,8 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
                 int block_y = y / BLOCKSIZE_Y;
                 int cell_x = x - block_x * BLOCKSIZE_X;
                 int cell_y = y - block_y * BLOCKSIZE_Y;
-                gbhs::Block& b = data.blocks[block_y][block_x];
-                gbhs::Cell& c = b.data[cell_y][cell_x];
+                gbhs::Block& b = data.blocks.get(block_x, block_y);
+                gbhs::Cell& c = b.data.get(cell_x, cell_y);
                 if (c.height < 0.f) {
                     continue;
                 }
@@ -210,14 +210,14 @@ int main(int argc, char* argv[]) {
             size_t output_size = 0;
             for (int by = 0; by < BLOCKCNT_Y; ++by) {
                 for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-                    gbhs::Block& b = data.blocks[by][bx];
+                    gbhs::Block& b = data.blocks.get(bx, by); 
                     if (!b.containsWater()) {
                         continue;
                     }
 
                     for (int iy = 0; iy < BLOCKSIZE_Y; ++iy) {
                         for (int ix = 0; ix < BLOCKSIZE_X; ++ix) {
-                            gbhs::Cell& c = b.data[iy][ix];
+                            gbhs::Cell& c = b.data.get(ix, iy);
                             if (c.water_level > 0.f) {
                                 ++output_size;
                                 uint32_t idx = ix + BLOCKSIZE_X * bx +
