@@ -11,14 +11,14 @@ namespace gbhs {
 class Manning {
    public:
     Manning(SimulationData& data) : data(data) {}
-    void step(const float& dt);
+    void step();
 
    private:
     SimulationData& data;
-    void calc(Cell& c, const float dt);
-    void simulateBlocks(float dt, int row);
-    void simulateBorders(float dt);
-    void applyChanges(float dt, int row);
+    void calc(Cell& c, const int change_idx);
+    void simulateBlocks(Block& b);
+    void simulateBorders();
+    void applyChanges(Block& b);
     ThreadPool tp;
 };
 

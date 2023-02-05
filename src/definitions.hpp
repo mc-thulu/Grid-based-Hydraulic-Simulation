@@ -11,8 +11,8 @@ constexpr int WORLDSIZE_X = 23558;  // TODO dynamic
 constexpr int WORLDSIZE_Y = 20000;  // TODO dynamic
 
 // block settings
-constexpr int BLOCKSIZE_X = 250;
-constexpr int BLOCKSIZE_Y = 250;
+constexpr int BLOCKSIZE_X = 150;
+constexpr int BLOCKSIZE_Y = 150;
 constexpr int BLOCKSIZE = BLOCKSIZE_X * BLOCKSIZE_Y;
 constexpr int BLOCKCNT_X = (WORLDSIZE_X / BLOCKSIZE_X) + 1;
 constexpr int BLOCKCNT_Y = (WORLDSIZE_Y / BLOCKSIZE_Y) + 1;

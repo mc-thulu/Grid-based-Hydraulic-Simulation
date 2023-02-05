@@ -55,8 +55,8 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-void ThreadPool::addTask(Task task) {
-    auto task_ptr = std::make_unique<Task>(std::move(task));
+void ThreadPool::addTask(const Task& task) {
+    auto task_ptr = std::make_unique<Task>(task);
     {
         std::unique_lock<std::mutex> lock(queue_lock);
         tasks.push(std::move(task_ptr));
@@ -66,6 +66,9 @@ void ThreadPool::addTask(Task task) {
 }
 
 void ThreadPool::waitUntilDone() {
+    if(cnt_tasks_pending == 0){
+        return;
+    }
     std::unique_lock<std::mutex> lock(done_lock);
     cond_done.wait(lock, [this]() { return tasks.empty(); });
 }

@@ -10,11 +10,13 @@ using namespace gbhs::constants;
 
 namespace gbhs {
 
+enum { BLOCK_CHANGE, BORDER_CHANGE };
+
 // TODO reduce size?
 struct Cell {
     float height = -1.f;
     float water_level = 0.f;
-    float water_level_change = 0.f;
+    float water_level_change[2] = {0.f, 0.f};
     Cell* neighbor = nullptr;
     float distance = 0.f;
     float gradient = 0.f;

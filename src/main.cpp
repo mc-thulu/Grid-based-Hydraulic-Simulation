@@ -117,8 +117,7 @@ void decideRainCells(std::vector<std::pair<uint32_t, double>>& rain_cells,
                     continue;
                 }
                 // TODO: rain depends on cell size; for now: assume cell = 1m^2
-                c.rain =
-                    (noise - 0.7) * 3.333 * RAINFALL_HEIGHT;  // [m per s per m^2]
+                c.rain = (noise - 0.7) * 3.333 * RAINFALL_HEIGHT;  // [m per s per m^2]
                 b.cells_with_water.set(cell_x + cell_y * BLOCKSIZE_X, true);
             }
         }
@@ -192,7 +191,7 @@ int main(int argc, char* argv[]) {
     auto t_step_start = high_resolution_clock::now();
     size_t output_counter = settings.output_resolution;  // [steps]
     for (size_t i = 0; i < SIMULATION_STEPS; ++i) {
-        sim.step(settings.dt);
+        sim.step();
 
         // debug info
         auto t_step =
@@ -210,7 +209,7 @@ int main(int argc, char* argv[]) {
             size_t output_size = 0;
             for (int by = 0; by < BLOCKCNT_Y; ++by) {
                 for (int bx = 0; bx < BLOCKCNT_X; ++bx) {
-                    gbhs::Block& b = data.blocks.get(bx, by); 
+                    gbhs::Block& b = data.blocks.get(bx, by);
                     if (!b.containsWater()) {
                         continue;
                     }

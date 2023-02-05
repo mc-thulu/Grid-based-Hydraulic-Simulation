@@ -21,7 +21,7 @@ class ThreadPool {
     ThreadPool(const size_t& thread_count = std::thread::hardware_concurrency());
     ~ThreadPool();
 
-    void addTask(Task task);
+    void addTask(const Task& task);
     void waitUntilDone();
 
     ThreadPool(const ThreadPool& t) = delete;
